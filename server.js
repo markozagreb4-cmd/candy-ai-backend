@@ -37,18 +37,30 @@ app.post("/chat", async (req, res) => {
 
     const data = await response.json();
 
-    res.json({
-      reply: data.choices?.[0]?.message?.content || "No response"
-    });
+    // 🔥 DEBUG (bitno za tebe)
+    console.log("OPENAI RESPONSE:", JSON.stringify(data, null, 2));
+
+    // 🔥 SAFE PARSING
+    const reply =
+      data?.choices?.[0]?.message?.content ||
+      data?.error?.message ||
+      "AI not response (check logs)";
+
+    res.json({ reply });
 
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: "Server error" });
+
+    console.log("SERVER ERROR:", err);
+
+    res.status(500).json({
+      reply: "Server error"
+    });
+
   }
 
 });
 
-// TEST ROUTE (BITNO!)
+// test route
 app.get("/", (req, res) => {
   res.send("AI server is alive");
 });
