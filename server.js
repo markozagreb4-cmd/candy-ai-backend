@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import fetch from "node-fetch";
 
 const app = express();
 app.use(cors());
@@ -7,15 +8,15 @@ app.use(express.json());
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
+const personalities = {
+  mia: "You are Mia, flirty and sweet.",
+  anna: "You are Anna, teasing and playful.",
+  sara: "You are Sara, emotional and soft."
+};
+
 app.post("/chat", async (req, res) => {
 
   const { message, persona } = req.body;
-
-  const personalities = {
-    mia: "You are Mia, flirty and sweet.",
-    anna: "You are Anna, teasing and playful.",
-    sara: "You are Sara, emotional and soft."
-  };
 
   try {
 
@@ -28,7 +29,7 @@ app.post("/chat", async (req, res) => {
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: personalities[persona] },
+          { role: "system", content: personalities[persona] || personalities.mia },
           { role: "user", content: message }
         ]
       })
@@ -47,6 +48,13 @@ app.post("/chat", async (req, res) => {
 
 });
 
-app.listen(3000, () => {
-  console.log("AI server running");
+// TEST ROUTE (BITNO!)
+app.get("/", (req, res) => {
+  res.send("AI server is alive");
+});
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log("AI server running on", PORT);
 });
