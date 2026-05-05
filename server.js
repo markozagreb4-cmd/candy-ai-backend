@@ -4,47 +4,33 @@ import fetch from "node-fetch";
 import Stripe from "stripe";
 
 const app = express();
+
+// ⚠️ Stripe webhook zahtijeva RAW body (bitno!)
+app.use("/webhook", express.raw({ type: "application/json" }));
 app.use(cors());
 app.use(express.json());
 
-// 🔑 KEYS
+// 🔑 KEYS (iz Render env varova)
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// 🧠 persona normalizer
+// 🧠 PERSONA CLEANER
 const cleanPersona = (persona = "") =>
   persona.toLowerCase().trim();
 
 // 💖 PERSONALITIES
 const personalities = {
-  mia: `
-You are Mia.
-You are a flirty, sweet and playful AI girlfriend.
-You use emojis 💖✨😉
-You sound warm and romantic.
-Keep responses medium length.
-  `,
-
-  anna: `
-You are Anna.
-You are teasing, confident and playful 😏
-You give short witty replies.
-You flirt boldly.
-  `,
-
-  sara: `
-You are Sara.
-You are soft, emotional and caring 💭
-You give thoughtful supportive replies.
-  `
+  mia: `You are Mia. Flirty, sweet AI girlfriend 💖✨`,
+  anna: `You are Anna. Teasing, witty and playful 😏`,
+  sara: `You are Sara. Soft, emotional and caring 💭`
 };
 
-// 🚀 CHAT ENDPOINT
+// 🚀 CHAT
 app.post("/chat", async (req, res) => {
   const { message, persona } = req.body;
 
-  const fixedPersona = cleanPersona(persona);
-  const systemPrompt = personalities[fixedPersona] || personalities.mia;
+  const systemPrompt =
+    personalities[cleanPersona(persona)] || personalities.mia;
 
   try {
     const response = await fetch(
@@ -68,27 +54,25 @@ app.post("/chat", async (req, res) => {
 
     const data = await response.json();
 
-    console.log("OPENAI RESPONSE:", JSON.stringify(data, null, 2));
-
     const reply =
       data?.choices?.[0]?.message?.content ||
-      data?.error?.message ||
-      "AI not response";
+      "AI error";
 
     res.json({ reply });
 
   } catch (err) {
-    console.log("SERVER ERROR:", err);
+    console.log(err);
     res.status(500).json({ reply: "Server error" });
   }
 });
 
-// 💳 STRIPE CHECKOUT (OVO JE SADA ISPRAVNO)
+// 💳 STRIPE CHECKOUT
 app.post("/create-checkout", async (req, res) => {
   try {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "subscription",
+
       line_items: [
         {
           price_data: {
@@ -104,6 +88,7 @@ app.post("/create-checkout", async (req, res) => {
           quantity: 1
         }
       ],
+
       success_url: "https://your-site.com/success",
       cancel_url: "https://your-site.com/cancel"
     });
@@ -111,19 +96,64 @@ app.post("/create-checkout", async (req, res) => {
     res.json({ url: session.url });
 
   } catch (err) {
-    console.log("STRIPE ERROR:", err);
+    console.log(err);
     res.status(500).json({ error: "Stripe error" });
   }
 });
 
-// 🧪 TEST ROUTE
+// 💰 WEBHOOK (PRO UNLOCK)
+app.post("/webhook", async (req, res) => {
+
+  const sig = req.headers["stripe-signature"];
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+  } catch (err) {
+    console.log("Webhook error:", err.message);
+    return res.status(400).send("Webhook Error");
+  }
+
+  if (event.type === "checkout.session.completed") {
+
+    const session = event.data.object;
+
+    const userId = session.client_reference_id; // koristi ID (NE EMAIL)
+
+    console.log("💰 PAID USER:", userId);
+
+    await fetch(
+      "https://zianilmlyzugxnbefcqs.supabase.co/rest/v1/profiles?id=eq." + userId,
+      {
+        method: "PATCH",
+        headers: {
+          apikey: process.env.SUPABASE_SERVICE_KEY,
+          Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          is_pro: true
+        })
+      }
+    );
+  }
+
+  res.json({ received: true });
+});
+
+// 🧪 TEST
 app.get("/", (req, res) => {
   res.send("AI server is alive 🚀");
 });
 
-// 🚀 START SERVER
+// 🚀 START
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log("AI server running on", PORT);
+  console.log("Server running on", PORT);
 });
