@@ -29,10 +29,35 @@ const personalities = {
 app.post("/chat", async (req, res) => {
   const { message, persona, userId } = req.body;
 
-  const systemPrompt =
-    personalities[cleanPersona(persona)] || personalities.mia;
+  let history = [];
 
   try {
+    // 🧠 LOAD MEMORY
+    if (userId) {
+      const resHistory = await fetch(
+        `https://zianilmlyzugxnbefcqs.supabase.co/rest/v1/messages?user_id=eq.${userId}&order=created_at.desc&limit=10`,
+        {
+          headers: {
+            apikey: process.env.SUPABASE_SERVICE_KEY,
+            Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`
+          }
+        }
+      );
+
+      const data = await resHistory.json();
+
+      if (Array.isArray(data)) {
+        history = data
+          .reverse()
+          .map(m => ({
+            role: m.role,
+            content: m.content
+          }));
+      }
+    }
+
+    const systemPrompt =
+      personalities[cleanPersona(persona)] || personalities.mia;
 
     // 💾 SAVE USER MESSAGE
     if (userId) {
@@ -51,7 +76,7 @@ app.post("/chat", async (req, res) => {
       });
     }
 
-    // 🤖 OPENAI REQUEST
+    // 🤖 OPENAI REQUEST (🔥 MEMORY IS NOW ACTIVE)
     const response = await fetch(
       "https://api.openai.com/v1/chat/completions",
       {
@@ -64,6 +89,7 @@ app.post("/chat", async (req, res) => {
           model: "gpt-4o-mini",
           messages: [
             { role: "system", content: systemPrompt },
+            ...history,
             { role: "user", content: message }
           ],
           temperature: 0.9
@@ -102,7 +128,6 @@ app.post("/chat", async (req, res) => {
     res.status(500).json({ reply: "Server error" });
   }
 });
-
 // 💳 STRIPE CHECKOUT
 app.post("/create-checkout", async (req, res) => {
   try {
