@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Success</title>
+</head>
+<body style="background:#0b0618;color:white;display:flex;justify-content:center;align-items:center;height:100vh;font-family:Arial;">
+  
+  <div style="text-align:center;">
+    <h1>💎 Payment successful!</h1>
+    <p>Activating PRO...</p>
+  </div>
+
+<script>
+  localStorage.setItem("isPro", "true");
+  localStorage.setItem("msgCount", "0");
+
+  setTimeout(() => {
+    window.location.href = "/index.html"; // tvoj chat
+  }, 2000);
+</script>
+
+</body>
+</html>
