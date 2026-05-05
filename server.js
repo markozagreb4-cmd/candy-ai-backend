@@ -7,7 +7,8 @@ app.use(cors());
 app.use(express.json());
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
+const cleanPersona = (persona) =>
+  (persona || "").toLowerCase().trim();
 const personalities = {
   mia: "You are Mia, flirty and sweet.",
   anna: "You are Anna, teasing and playful.",
@@ -17,7 +18,7 @@ const personalities = {
 app.post("/chat", async (req, res) => {
 
   const { message, persona } = req.body;
-
+const fixedPersona = cleanPersona(persona);
   try {
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -29,7 +30,7 @@ app.post("/chat", async (req, res) => {
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: personalities[persona] || personalities.mia },
+          { role: "system", content: personalities[fixedPersona] || personalities.mia },
           { role: "user", content: message }
         ]
       })
