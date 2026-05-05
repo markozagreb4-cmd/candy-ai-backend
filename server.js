@@ -27,12 +27,31 @@ const personalities = {
 
 // 🚀 CHAT
 app.post("/chat", async (req, res) => {
-  const { message, persona } = req.body;
+  const { message, persona, userId } = req.body;
 
   const systemPrompt =
     personalities[cleanPersona(persona)] || personalities.mia;
 
   try {
+
+    // 💾 SAVE USER MESSAGE
+    if (userId) {
+      await fetch("https://zianilmlyzugxnbefcqs.supabase.co/rest/v1/messages", {
+        method: "POST",
+        headers: {
+          apikey: process.env.SUPABASE_SERVICE_KEY,
+          Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          role: "user",
+          content: message
+        })
+      });
+    }
+
+    // 🤖 OPENAI REQUEST
     const response = await fetch(
       "https://api.openai.com/v1/chat/completions",
       {
@@ -56,12 +75,30 @@ app.post("/chat", async (req, res) => {
 
     const reply =
       data?.choices?.[0]?.message?.content ||
-      "AI error";
+      data?.error?.message ||
+      "AI not response";
+
+    // 💾 SAVE AI RESPONSE
+    if (userId) {
+      await fetch("https://zianilmlyzugxnbefcqs.supabase.co/rest/v1/messages", {
+        method: "POST",
+        headers: {
+          apikey: process.env.SUPABASE_SERVICE_KEY,
+          Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          role: "assistant",
+          content: reply
+        })
+      });
+    }
 
     res.json({ reply });
 
   } catch (err) {
-    console.log(err);
+    console.log("SERVER ERROR:", err);
     res.status(500).json({ reply: "Server error" });
   }
 });
