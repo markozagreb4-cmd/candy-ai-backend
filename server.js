@@ -81,41 +81,38 @@ app.get("/me", async (req, res) => {
 
   try {
 
-    const userId =
-      req.query.userId;
+    const userId = req.query.userId;
 
-    const response =
-      await fetch(
-        `https://zianilmlyzugxnbefcqs.supabase.co/rest/v1/profiles?id=eq.${userId}&select=is_pro`,
-        {
-          headers: {
-            apikey:
-              process.env.SUPABASE_SERVICE_KEY,
+    if (!userId) {
+      return res.json({ isPro: false });
+    }
 
-            Authorization:
-              `Bearer ${process.env.SUPABASE_SERVICE_KEY}`
-          }
+    const response = await fetch(
+      `https://zianilmlyzugxnbefcqs.supabase.co/rest/v1/profiles?id=eq.${userId}&select=is_pro`,
+      {
+        headers: {
+          apikey: process.env.SUPABASE_SERVICE_KEY,
+          Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}`
         }
-      );
+      }
+    );
 
-    const data =
-      await response.json();
+    const data = await response.json();
 
-    res.json({
-      isPro:
-        data?.[0]?.is_pro || false
-    });
+    // 🔥 SAFE CHECK (bitno)
+    const isPro = Array.isArray(data) && data.length > 0
+      ? data[0].is_pro
+      : false;
+
+    res.json({ isPro });
 
   } catch (err) {
 
-    console.log(err);
+    console.log("ME ERROR:", err);
 
-    res.json({
-      isPro: false
-    });
+    res.json({ isPro: false });
   }
 });
-
 
 // 🚀 CHAT
 app.post("/chat", async (req, res) => {
