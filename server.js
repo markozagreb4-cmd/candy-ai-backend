@@ -4,14 +4,21 @@ import fetch from "node-fetch";
 import Stripe from "stripe";
 
 const app = express();
+
+// ✅ 1. CORS MORA BITI PRVI (KRITIČNO)
 app.use(cors({
   origin: "https://candy-ai-frontend.vercel.app",
-  methods: ["GET", "POST"],
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
 
 app.options("*", cors());
-// ⚠️ STRIPE WEBHOOK RAW BODY
+
+// ✅ 2. JSON BODY
+app.use(express.json());
+
+// ⚠️ 3. STRIPE RAW (MORA BITI PRIJE /webhook)
 app.use("/webhook", express.raw({ type: "application/json" }));
 
 // ✅ CORS FIX
