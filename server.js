@@ -4,7 +4,13 @@ import fetch from "node-fetch";
 import Stripe from "stripe";
 
 const app = express();
+app.use(cors({
+  origin: "https://candy-ai-frontend.vercel.app",
+  methods: ["GET", "POST"],
+  credentials: true
+}));
 
+app.options("*", cors());
 // ⚠️ STRIPE WEBHOOK RAW BODY
 app.use("/webhook", express.raw({ type: "application/json" }));
 
