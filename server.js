@@ -11,6 +11,7 @@ app.use("/webhook", express.raw({ type: "application/json" }));
 // ✅ CORS FIX
 app.use(cors({
   origin: [
+    "https://candy-ai-frontend.vercel.app",
     "https://candy-ai-frontend-eopc.vercel.app"
   ],
   methods: ["GET", "POST"],
@@ -18,9 +19,6 @@ app.use(cors({
 }));
 
 app.options("*", cors());
-
-// JSON
-app.use(express.json());
 
 // 🔑 ENV
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
