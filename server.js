@@ -4,6 +4,33 @@ import Stripe from "stripe";
 
 const app = express();
 
+const allowedOrigins = [
+  "https://candy-ai-frontend.vercel.app",
+  "https://candy-ai-frontend-eopc.vercel.app"
+];
+
+// JSON middleware
+app.use(express.json());
+
+// CORS (FIXED)
+app.use(cors({
+  origin: function (origin, callback) {
+    // allow mobile / postman
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Not allowed by CORS"));
+  },
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+}));
+
+// IMPORTANT: proper preflight handling
+app.options("*", cors());
 // ✅ 1. CORS MORA BITI PRVI (KRITIČNO)
 app.use(cors({
   origin: "https://candy-ai-frontend.vercel.app",
