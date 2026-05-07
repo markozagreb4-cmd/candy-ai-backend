@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import Stripe from "stripe";
+import fetch from "node-fetch";
 
 const app = express();
 
@@ -9,14 +10,14 @@ const allowedOrigins = [
   "https://candy-ai-frontend-eopc.vercel.app"
 ];
 
-// JSON middleware
-app.use(express.json());
-
-// CORS (FIXED)
+// ✅ CORS
 app.use(cors({
   origin: function (origin, callback) {
-    // allow mobile / postman
-    if (!origin) return callback(null, true);
+
+    // allow requests without origin
+    if (!origin) {
+      return callback(null, true);
+    }
 
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
@@ -24,37 +25,38 @@ app.use(cors({
 
     return callback(new Error("Not allowed by CORS"));
   },
+
   methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization"
+  ],
+
   credentials: true
 }));
 
-// IMPORTANT: proper preflight handling
+// ✅ PREFLIGHT
 app.options("*", cors());
-// ✅ 1. CORS MORA BITI PRVI (KRITIČNO)
-app.use(cors({
-  origin: "https://candy-ai-frontend.vercel.app",
-  methods: ["GET", "POST", "OPTIONS"],
-  credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
-// ✅ 2. JSON BODY
+
+// ✅ JSON
 app.use(express.json());
 
-// ⚠️ 3. STRIPE RAW (MORA BITI PRIJE /webhook)
-app.use("/webhook", express.raw({ type: "application/json" }));
+// ✅ STRIPE RAW WEBHOOK
+app.use(
+  "/webhook",
+  express.raw({
+    type: "application/json"
+  })
+);
 
-// ✅ CORS FIX
-app.use(cors({
-  origin: [
-    "https://candy-ai-frontend.vercel.app",
-    "https://candy-ai-frontend-eopc.vercel.app"
-  ],
-  methods: ["GET", "POST"],
-  credentials: true
-}));
+// 🔑 ENV
+const OPENAI_API_KEY =
+  process.env.OPENAI_API_KEY;
 
-app.options("*", cors());
+const stripe = new Stripe(
+  process.env.STRIPE_SECRET_KEY
+);
 
 // 🔑 ENV
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
