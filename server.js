@@ -9,12 +9,10 @@ const app = express();
 app.use(cors({
   origin: "https://candy-ai-frontend.vercel.app",
   methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
 
 app.options("*", cors());
-
 // ✅ 2. JSON BODY
 app.use(express.json());
 
